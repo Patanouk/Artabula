@@ -1,5 +1,3 @@
-docker container rm -f wikimedia-mysql
-
 docker container run \
       -d \
       --name wikimedia-mysql \
