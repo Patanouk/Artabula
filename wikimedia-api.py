@@ -1,4 +1,5 @@
 import json
+from typing import Dict
 
 import requests
 
@@ -10,10 +11,10 @@ WIKIMEDIA_BASE_URL = "https://commons.wikimedia.org/w/api.php?"
 
 SEARCH_RADIUS_METERS = 500  # Distance around the coordinate we search
 SEARCH_COORDINATES = '49.0222493192745|2.000689441938519'  # Coordinates around which we search, in lat|long format
-NUMBER_SEARCH_RESULT = 10  # Max 500 per search
+NUMBER_SEARCH_RESULT = 5  # Max 500 per search
 
 
-def search_wikimedia_image_with_url() -> None:
+def get_wikimedia_page_id_to_url() -> Dict[str, str]:
     wikimedia_response = requests.get(f'{WIKIMEDIA_BASE_URL}'
                                       'format=json&'
                                       'action=query&'
@@ -29,10 +30,19 @@ def search_wikimedia_image_with_url() -> None:
                                       'iiurlwidth=200&'
                                       'iiurlheight=200')
 
-    pretty_print_json(wikimedia_response.text)
+    json_response = json.loads(wikimedia_response.text)
+
+    pages = json_response['query']['pages']
+    result = {}
+    for page in pages:
+        result[page] = pages[page]['imageinfo'][0]['url']
+
+    print(f'Extracted images to page ids : {result}')
+
+    return result
 
 
-def search_Wikimedia_file_only() -> None:
+def print_wikimedia_geosearch_results() -> None:
     wikimedia_response = requests.get(f'{WIKIMEDIA_BASE_URL}'
                                       'action=query&'
                                       'format=json&'
@@ -43,13 +53,15 @@ def search_Wikimedia_file_only() -> None:
                                       f'gslimit={NUMBER_SEARCH_RESULT}&'
                                       'list=geosearch')
 
-    pretty_print_json(wikimedia_response.text)
+    url_dict = get_wikimedia_page_id_to_url()
 
+    json_response = json.loads(wikimedia_response.text)
+    geosearch_results = json_response['query']['geosearch']
+    for geosearch_result in geosearch_results:
+        geosearch_result['url'] = url_dict.get(str(geosearch_result['pageid']), "URL NOT FOUND")
 
-def pretty_print_json(json_string: str) -> None:
-    json_parsed = json.loads(json_string)
-    print(json.dumps(json_parsed, indent=2))
+    print(json.dumps(geosearch_results, indent=2))
 
 
 if __name__ == '__main__':
-    search_wikimedia_image_with_url()
+    print_wikimedia_geosearch_results()
